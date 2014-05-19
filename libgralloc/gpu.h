@@ -36,7 +36,7 @@ class gpu_context_t : public alloc_device_t {
     gpu_context_t(const private_module_t* module,
                   IAllocController* alloc_ctrl);
 
-    int gralloc_alloc_buffer(size_t size, int usage,
+    int gralloc_alloc_buffer(unsigned int size, int usage,
                              buffer_handle_t* pHandle,
                              int bufferType, int format,
                              int width, int height);
@@ -45,16 +45,16 @@ class gpu_context_t : public alloc_device_t {
 
     int alloc_impl(int w, int h, int format, int usage,
                    buffer_handle_t* pHandle, int* pStride,
-                   size_t bufferSize = 0);
+                   unsigned int bufferSize = 0);
 
     static int gralloc_alloc(alloc_device_t* dev, int w, int h,
                              int format, int usage,
                              buffer_handle_t* pHandle,
                              int* pStride);
-    int gralloc_alloc_framebuffer_locked(size_t size, int usage,
+    int gralloc_alloc_framebuffer_locked(unsigned int size, int usage,
                                          buffer_handle_t* pHandle);
 
-    int gralloc_alloc_framebuffer(size_t size, int usage,
+    int gralloc_alloc_framebuffer(unsigned int size, int usage,
                                   buffer_handle_t* pHandle);
 
     static int gralloc_free(alloc_device_t* dev, buffer_handle_t handle);

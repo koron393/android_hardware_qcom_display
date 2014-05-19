@@ -33,11 +33,12 @@
 struct private_module_t;
 struct private_handle_t;
 
-inline size_t roundUpToPageSize(size_t x) {
+inline unsigned int roundUpToPageSize(unsigned int x) {
     return (x + (PAGE_SIZE-1)) & ~(PAGE_SIZE-1);
 }
 
-inline size_t ALIGN(size_t x, size_t align) {
+template <class Type>
+inline Type ALIGN(Type x, Type align) {
     return (x + align-1) & ~(align-1);
 }
 
@@ -46,8 +47,8 @@ inline size_t ALIGN(size_t x, size_t align) {
 
 int mapFrameBufferLocked(struct private_module_t* module);
 int terminateBuffer(gralloc_module_t const* module, private_handle_t* hnd);
-size_t getBufferSizeAndDimensions(int width, int height, int format,
-                                  int& alignedw, int &alignedh);
+unsigned int getBufferSizeAndDimensions(int width, int height, int format,
+        int& alignedw, int &alignedh);
 
 int decideBufferHandlingMechanism(int format, const char *compositionUsed,
                                   int hasBlitEngine, int *needConversion,

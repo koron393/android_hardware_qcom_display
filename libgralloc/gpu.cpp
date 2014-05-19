@@ -48,7 +48,7 @@ gpu_context_t::gpu_context_t(const private_module_t* module,
 
 }
 
-int gpu_context_t::gralloc_alloc_buffer(size_t size, int usage,
+int gpu_context_t::gralloc_alloc_buffer(unsigned int size, int usage,
                                         buffer_handle_t* pHandle, int bufferType,
                                         int format, int width, int height)
 {
@@ -155,13 +155,13 @@ int gpu_context_t::gralloc_alloc_buffer(size_t size, int usage,
         }
 
         flags |= data.allocType;
-        int eBaseAddr = int(eData.base) + eData.offset;
+        uint64_t eBaseAddr = (uint64_t)(eData.base) + eData.offset;
         private_handle_t *hnd = new private_handle_t(data.fd, size, flags,
                 bufferType, format, width, height, eData.fd, eData.offset,
                 eBaseAddr);
 
         hnd->offset = data.offset;
-        hnd->base = int(data.base) + data.offset;
+        hnd->base = (uint64_t)(data.base) + data.offset;
         hnd->gpuaddr = 0;
 
         *pHandle = hnd;
@@ -186,7 +186,7 @@ void gpu_context_t::getGrallocInformationFromFormat(int inputFormat,
     }
 }
 
-int gpu_context_t::gralloc_alloc_framebuffer_locked(size_t /*size*/, int usage,
+int gpu_context_t::gralloc_alloc_framebuffer_locked(unsigned int /*size*/, int usage,
                                                     buffer_handle_t* pHandle)
 {
     private_module_t* m = reinterpret_cast<private_module_t*>(common.module);
@@ -201,9 +201,9 @@ int gpu_context_t::gralloc_alloc_framebuffer_locked(size_t /*size*/, int usage,
         return -EINVAL;
     }
 
-    const uint32_t bufferMask = m->bufferMask;
+    const unsigned int bufferMask = m->bufferMask;
     const uint32_t numBuffers = m->numBuffers;
-    size_t bufferSize = m->finfo.line_length * m->info.yres;
+    unsigned int bufferSize = m->finfo.line_length * m->info.yres;
 
     //adreno needs FB size to be page aligned
     bufferSize = roundUpToPageSize(bufferSize);
@@ -223,7 +223,7 @@ int gpu_context_t::gralloc_alloc_framebuffer_locked(size_t /*size*/, int usage,
     }
 
     // create a "fake" handle for it
-    intptr_t vaddr = intptr_t(m->framebuffer->base);
+    uint64_t vaddr = uint64_t(m->framebuffer->base);
     private_handle_t* hnd = new private_handle_t(
         dup(m->framebuffer->fd), bufferSize,
         private_handle_t::PRIV_FLAGS_USES_PMEM |
@@ -240,13 +240,13 @@ int gpu_context_t::gralloc_alloc_framebuffer_locked(size_t /*size*/, int usage,
         vaddr += bufferSize;
     }
     hnd->base = vaddr;
-    hnd->offset = vaddr - intptr_t(m->framebuffer->base);
+    hnd->offset = (unsigned int)(vaddr - m->framebuffer->base);
     *pHandle = hnd;
     return 0;
 }
 
 
-int gpu_context_t::gralloc_alloc_framebuffer(size_t size, int usage,
+int gpu_context_t::gralloc_alloc_framebuffer(unsigned int size, int usage,
                                              buffer_handle_t* pHandle)
 {
     private_module_t* m = reinterpret_cast<private_module_t*>(common.module);
@@ -258,11 +258,11 @@ int gpu_context_t::gralloc_alloc_framebuffer(size_t size, int usage,
 
 int gpu_context_t::alloc_impl(int w, int h, int format, int usage,
                               buffer_handle_t* pHandle, int* pStride,
-                              size_t bufferSize) {
+                              unsigned int bufferSize) {
     if (!pHandle || !pStride)
         return -EINVAL;
 
-    size_t size;
+    unsigned int size;
     int alignedw, alignedh;
     int grallocFormat = format;
     int bufferType;
@@ -292,7 +292,7 @@ int gpu_context_t::alloc_impl(int w, int h, int format, int usage,
     getGrallocInformationFromFormat(grallocFormat, &bufferType);
     size = getBufferSizeAndDimensions(w, h, grallocFormat, alignedw, alignedh);
 
-    if ((ssize_t)size <= 0)
+    if ((unsigned int)size <= 0)
         return -EINVAL;
     size = (bufferSize >= size)? bufferSize : size;
 
@@ -324,21 +324,22 @@ int gpu_context_t::alloc_impl(int w, int h, int format, int usage,
 int gpu_context_t::free_impl(private_handle_t const* hnd) {
     private_module_t* m = reinterpret_cast<private_module_t*>(common.module);
     if (hnd->flags & private_handle_t::PRIV_FLAGS_FRAMEBUFFER) {
-        const size_t bufferSize = m->finfo.line_length * m->info.yres;
-        int index = (hnd->base - m->framebuffer->base) / bufferSize;
-        m->bufferMask &= ~(1<<index);
+        const unsigned int bufferSize = m->finfo.line_length * m->info.yres;
+        unsigned int index = (unsigned int) ((hnd->base - m->framebuffer->base)
+                / bufferSize);
+        m->bufferMask &= ~(1LU<<index);
     } else {
 
         terminateBuffer(&m->base, const_cast<private_handle_t*>(hnd));
         IMemAlloc* memalloc = mAllocCtrl->getAllocator(hnd->flags);
-        int err = memalloc->free_buffer((void*)hnd->base, (size_t) hnd->size,
+        int err = memalloc->free_buffer((void*)hnd->base, hnd->size,
                                         hnd->offset, hnd->fd);
         if(err)
             return err;
         // free the metadata space
-        unsigned long size = ROUND_UP_PAGESIZE(sizeof(MetaData_t));
+        unsigned int size = ROUND_UP_PAGESIZE(sizeof(MetaData_t));
         err = memalloc->free_buffer((void*)hnd->base_metadata,
-                                    (size_t) size, hnd->offset_metadata,
+                                    (unsigned int) size, hnd->offset_metadata,
                                     hnd->fd_metadata);
         if (err)
             return err;

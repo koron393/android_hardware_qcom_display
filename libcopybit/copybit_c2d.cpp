@@ -940,9 +940,9 @@ static void populate_buffer_info(struct copybit_image_t const *img, bufferInfo& 
 /* Function to get the required size for a particular format, inorder for C2D to perform
  * the blit operation.
  */
-static size_t get_size(const bufferInfo& info)
+static int get_size(const bufferInfo& info)
 {
-    size_t size = 0;
+    int size = 0;
     int w = info.width;
     int h = info.height;
     int aligned_w = ALIGN(w, 32);

@@ -82,7 +82,8 @@ static int fb_post(struct framebuffer_device_t* dev, buffer_handle_t buffer)
         reinterpret_cast<private_module_t*>(dev->common.module);
     private_handle_t *hnd = static_cast<private_handle_t*>
         (const_cast<native_handle_t*>(buffer));
-    const size_t offset = hnd->base - m->framebuffer->base;
+    const unsigned int offset = (unsigned int) (hnd->base -
+            m->framebuffer->base);
     m->info.activate = FB_ACTIVATE_VBL;
     m->info.yoffset = offset / m->finfo.line_length;
     if (ioctl(m->framebuffer->fd, FBIOPUT_VSCREENINFO, &m->info) == -1) {
@@ -196,8 +197,8 @@ int mapFrameBufferLocked(struct private_module_t* module)
     }
 
     //adreno needs 4k aligned offsets. Max hole size is 4096-1
-    int  size = roundUpToPageSize(info.yres * info.xres *
-                                                       (info.bits_per_pixel/8));
+    unsigned int size = roundUpToPageSize(info.yres * info.xres *
+                                               (info.bits_per_pixel/8));
 
     /*
      * Request NUM_BUFFERS screens (at least 2 for page flipping)
@@ -318,7 +319,7 @@ int mapFrameBufferLocked(struct private_module_t* module)
     module->numBuffers = info.yres_virtual / info.yres;
     module->bufferMask = 0;
     //adreno needs page aligned offsets. Align the fbsize to pagesize.
-    size_t fbSize = roundUpToPageSize(finfo.line_length * info.yres)*
+    unsigned int fbSize = roundUpToPageSize(finfo.line_length * info.yres)*
                     module->numBuffers;
     module->framebuffer = new private_handle_t(fd, fbSize,
                                         private_handle_t::PRIV_FLAGS_USES_ION,
@@ -330,7 +331,7 @@ int mapFrameBufferLocked(struct private_module_t* module)
         close(fd);
         return -errno;
     }
-    module->framebuffer->base = intptr_t(vaddr);
+    module->framebuffer->base = uint64_t(vaddr);
     memset(vaddr, 0, fbSize);
     module->currentOffset = 0;
     //Enable vsync

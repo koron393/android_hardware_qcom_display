@@ -301,10 +301,10 @@ IMemAlloc* IonController::getAllocator(int flags)
     return memalloc;
 }
 
-size_t getBufferSizeAndDimensions(int width, int height, int format,
+unsigned int getBufferSizeAndDimensions(int width, int height, int format,
                                   int& alignedw, int &alignedh)
 {
-    size_t size = 0;
+    unsigned int size = 0;
 
     AdrenoMemInfo::getInstance().getAlignedWidthAndHeight(width,
                                                           height,
@@ -344,7 +344,7 @@ size_t getBufferSizeAndDimensions(int width, int height, int format,
             }
             size = alignedw*alignedh +
                     (ALIGN(alignedw/2, 16) * (alignedh/2))*2;
-            size = ALIGN(size, 4096);
+            size = ALIGN(size, (unsigned int)4096);
             break;
         case HAL_PIXEL_FORMAT_YCbCr_420_SP:
         case HAL_PIXEL_FORMAT_YCrCb_420_SP:
@@ -386,7 +386,7 @@ size_t getBufferSizeAndDimensions(int width, int height, int format,
 int getYUVPlaneInfo(private_handle_t* hnd, struct android_ycbcr* ycbcr)
 {
     int err = 0;
-    size_t ystride, cstride;
+    unsigned int ystride, cstride;
     memset(ycbcr->reserved, 0, sizeof(ycbcr->reserved));
 
     // Get the chroma offsets from the handle width/height. We take advantage
@@ -472,7 +472,7 @@ int alloc_buffer(private_handle_t **pHnd, int w, int h, int format, int usage)
     private_handle_t* hnd = new private_handle_t(data.fd, data.size,
                                                  data.allocType, 0, format,
                                                  alignedw, alignedh);
-    hnd->base = (int) data.base;
+    hnd->base = (uint64_t) data.base;
     hnd->offset = data.offset;
     hnd->gpuaddr = 0;
     *pHnd = hnd;

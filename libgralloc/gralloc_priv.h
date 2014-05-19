@@ -174,34 +174,37 @@ struct private_handle_t : public native_handle {
         // ints
         int     magic;
         int     flags;
-        int     size;
-        int     offset;
+        unsigned int  size;
+        unsigned int  offset;
         int     bufferType;
-        int     base;
-        int     offset_metadata;
+        uint64_t base __attribute__((aligned(8)));
+        unsigned int  offset_metadata;
         // The gpu address mapped into the mmu.
-        int     gpuaddr;
+        uint64_t gpuaddr __attribute__((aligned(8)));
         int     format;
         int     width;
         int     height;
-        int     base_metadata;
+        uint64_t base_metadata __attribute__((aligned(8)));
 
 #ifdef __cplusplus
-        static const int sNumInts = 12;
         static const int sNumFds = 2;
+        static inline int sNumInts() {
+            return ((sizeof(private_handle_t) - sizeof(native_handle_t)) /
+                    sizeof(int)) - sNumFds;
+        }
         static const int sMagic = 'gmsm';
 
-        private_handle_t(int fd, int size, int flags, int bufferType,
-                         int format,int width, int height, int eFd = -1,
-                         int eOffset = 0, int eBase = 0) :
+        private_handle_t(int fd, unsigned int size, int flags, int bufferType,
+                         int format, int width, int height, int eFd = -1,
+                         unsigned int eOffset = 0, uint64_t eBase = 0) :
             fd(fd), fd_metadata(eFd), magic(sMagic),
             flags(flags), size(size), offset(0), bufferType(bufferType),
             base(0), offset_metadata(eOffset), gpuaddr(0),
             format(format), width(width), height(height),
             base_metadata(eBase)
         {
-            version = sizeof(native_handle);
-            numInts = sNumInts;
+            version = (int) sizeof(native_handle);
+            numInts = sNumInts();
             numFds = sNumFds;
         }
         ~private_handle_t() {
@@ -215,11 +218,11 @@ struct private_handle_t : public native_handle {
         static int validate(const native_handle* h) {
             const private_handle_t* hnd = (const private_handle_t*)h;
             if (!h || h->version != sizeof(native_handle) ||
-                h->numInts != sNumInts || h->numFds != sNumFds) {
+                h->numInts != sNumInts() || h->numFds != sNumFds) {
                 ALOGD("Invalid gralloc handle (at %p): "
                       "ver(%d/%zu) ints(%d/%d) fds(%d/%d)",
                       h, h ? h->version : -1, sizeof(native_handle),
-                      h ? h->numInts : -1, sNumInts,
+                      h ? h->numInts : -1, sNumInts(),
                       h ? h->numFds : -1, sNumFds);
                 return -EINVAL;
             }
