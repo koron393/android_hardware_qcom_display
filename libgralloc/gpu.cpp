@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+#include <atomic>
+
 #include <limits.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -30,6 +32,12 @@
 using namespace gralloc;
 
 #define SZ_1M 0x100000
+
+static uint64_t next_backing_store_id()
+{
+    static std::atomic<uint64_t> next_id(1);
+    return next_id++;
+}
 
 gpu_context_t::gpu_context_t(const private_module_t* module,
                              IAllocController* alloc_ctrl ) :
@@ -224,9 +232,11 @@ int gpu_context_t::gralloc_alloc_framebuffer_locked(unsigned int /*size*/, int u
 
     // create a "fake" handle for it
     uint64_t vaddr = uint64_t(m->framebuffer->base);
+    // As GPU needs ION FD, the private handle is created
+    // using ION fd and ION flags are set
     private_handle_t* hnd = new private_handle_t(
         dup(m->framebuffer->fd), bufferSize,
-        private_handle_t::PRIV_FLAGS_USES_PMEM |
+        private_handle_t::PRIV_FLAGS_USES_ION |
         private_handle_t::PRIV_FLAGS_FRAMEBUFFER,
         BUFFER_TYPE_UI, m->fbFormat, m->info.xres,
         m->info.yres);
@@ -316,6 +326,11 @@ int gpu_context_t::alloc_impl(int w, int h, int format, int usage,
     if (err < 0) {
         return err;
     }
+
+    auto hnd = (private_handle_t*) *pHandle;
+    hnd->backing_store = next_backing_store_id();
+    hnd->original_width = w;
+    hnd->original_format = format;
 
     *pStride = alignedw;
     return 0;
